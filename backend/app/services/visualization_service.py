@@ -274,5 +274,13 @@ def generate_chart(
     if builder is None:
         raise ValueError(f"Unsupported chart type: {chart_type}")
 
+    # Chart types that do NOT need x_col
+    NO_X_REQUIRED = {"heatmap", "pair", "column_types", "missing_values", "top_categories", "numeric_distribution"}
+    if chart_type not in NO_X_REQUIRED and not x_col:
+        raise ValueError(f"Chart type '{chart_type}' requires an X-axis column.")
+    if x_col and x_col not in df.columns:
+        raise ValueError(f"Column '{x_col}' not found in the dataset.")
+
     fig = builder(df, x_col, y_col, title, tmpl, width, height)
     return json.loads(fig.to_json())
+

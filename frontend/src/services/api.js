@@ -26,7 +26,7 @@ api.interceptors.request.use(
 
 // ── Response Interceptor: handle 401 and 404 ──
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => (response.config.responseType === 'blob' ? response : response.data),
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('dc_token');
@@ -113,7 +113,7 @@ export const insights = {
 export const reports = {
   generateReport: (sessionId, format = 'html', sections = []) =>
     api.post(`/reports/${sessionId}/generate`, { format, sections }, {
-      responseType: format === 'pdf' ? 'blob' : 'json',
+      responseType: format === 'html' ? 'json' : 'blob',
     }),
 };
 

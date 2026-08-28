@@ -1,6 +1,21 @@
 import { motion } from 'motion/react';
 
-export default function EmptyState({ icon: Icon, title, description, actionText, onAction }) {
+/**
+ * EmptyState - accepts `icon` as either a React component OR JSX element.
+ */
+export default function EmptyState({ icon, title, description, actionText, onAction }) {
+  // Render icon whether it's a component class/function or already a JSX element
+  const renderIcon = () => {
+    if (!icon) return null;
+    // If it's a valid React element (JSX), render directly
+    if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) {
+      return <div className="text-text-muted">{icon}</div>;
+    }
+    // Otherwise treat as a component
+    const IconComponent = icon;
+    return <IconComponent className="w-10 h-10 text-text-muted" />;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -8,14 +23,14 @@ export default function EmptyState({ icon: Icon, title, description, actionText,
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center text-center py-16 px-6"
     >
-      {Icon && (
+      {icon && (
         <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
           className="w-20 h-20 rounded-2xl bg-bg flex items-center justify-center mb-6"
         >
-          <Icon className="w-10 h-10 text-text-muted" />
+          {renderIcon()}
         </motion.div>
       )}
 

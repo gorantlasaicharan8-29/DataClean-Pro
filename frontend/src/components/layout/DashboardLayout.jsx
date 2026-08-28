@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import ErrorBoundary from '../ui/ErrorBoundary';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -21,7 +22,9 @@ export default function DashboardLayout() {
         <Navbar onMenuToggle={toggleSidebar} />
 
         <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

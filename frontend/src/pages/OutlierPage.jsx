@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ChartContainer from '../components/charts/ChartContainer';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
+import { motion } from 'motion/react';
 
 export default function OutlierPage() {
   const { sessionId, datasetInfo, isLoaded } = useDataset();
@@ -16,11 +17,11 @@ export default function OutlierPage() {
   const [results, setResults] = useState(null);
 
   if (!isLoaded) {
-    return <EmptyState icon={<HiExclamationTriangle className="w-16 h-16"/>} title="No Dataset Loaded" description="Upload a dataset to detect outliers." actionText="Upload Dataset" onAction={() => window.location.href='/upload'} />;
+    return <EmptyState icon={HiExclamationTriangle} title="No Dataset Loaded" description="Upload a dataset to detect outliers." actionText="Upload Dataset" onAction={() => window.location.href='/upload'} />;
   }
 
   const numericColumns = datasetInfo?.columns_list?.filter(col => {
-    const t = datasetInfo.dtypes[col];
+    const t = datasetInfo?.dtypes?.[col];
     return t && (t.includes('int') || t.includes('float'));
   }) || [];
 
@@ -32,7 +33,7 @@ export default function OutlierPage() {
       setResults(res);
       toast.success("Detection complete");
     } catch (err) {
-      toast.error("Detection failed");
+      toast.error(err.response?.data?.detail || "Detection failed");
     } finally {
       setLoading(false);
     }
@@ -52,57 +53,103 @@ export default function OutlierPage() {
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-        <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-white">Detect Outliers</h2>
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className={`flex-1 p-4 rounded-xl border cursor-pointer transition ${method === 'iqr' ? 'border-primary bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700'}`} onClick={() => {setMethod('iqr'); setThreshold(1.5);}}>
-            <h3 className="font-semibold text-slate-800 dark:text-white">IQR Method</h3>
-            <p className="text-sm text-slate-500">Robust to extreme values (Default: 1.5)</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+          <HiExclamationTriangle className="text-warning" /> Outlier Detection
+        </h1>
+        <p className="text-text-secondary text-sm mt-1">Detect and remove statistical outliers from numeric columns.</p>
+      </motion.div>
+
+      {/* Method selector */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        className="bg-surface rounded-2xl border border-border p-6 shadow-sm"
+      >
+        <h2 className="text-base font-semibold text-text-primary mb-4">Detection Method</h2>
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div
+            onClick={() => { setMethod('iqr'); setThreshold(1.5); }}
+            className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition ${method === 'iqr' ? 'border-primary bg-primary/5' : 'border-border bg-bg hover:border-primary/40'}`}
+          >
+            <h3 className="font-semibold text-text-primary">IQR Method</h3>
+            <p className="text-sm text-text-secondary mt-1">Robust to extreme values (Default: 1.5×IQR)</p>
           </div>
-          <div className={`flex-1 p-4 rounded-xl border cursor-pointer transition ${method === 'zscore' ? 'border-primary bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700'}`} onClick={() => {setMethod('zscore'); setThreshold(3.0);}}>
-            <h3 className="font-semibold text-slate-800 dark:text-white">Z-Score Method</h3>
-            <p className="text-sm text-slate-500">Best for normally distributed data (Default: 3.0)</p>
+          <div
+            onClick={() => { setMethod('zscore'); setThreshold(3.0); }}
+            className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition ${method === 'zscore' ? 'border-primary bg-primary/5' : 'border-border bg-bg hover:border-primary/40'}`}
+          >
+            <h3 className="font-semibold text-text-primary">Z-Score Method</h3>
+            <p className="text-sm text-text-secondary mt-1">Best for normally distributed data (Default: 3.0σ)</p>
           </div>
         </div>
+
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Column</label>
-            <select value={column} onChange={(e) => setColumn(e.target.value)} className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white outline-none">
-              <option value="">-- Select --</option>
+            <label className="block text-sm font-medium text-text-primary mb-1">Select Column</label>
+            <select
+              value={column}
+              onChange={(e) => setColumn(e.target.value)}
+              className="w-full p-2.5 border border-border rounded-xl bg-bg text-text-primary outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="">-- Select a numeric column --</option>
               {numericColumns.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Threshold</label>
-            <input type="number" step="0.1" value={threshold} onChange={(e) => setThreshold(e.target.value)} className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white outline-none" />
+            <label className="block text-sm font-medium text-text-primary mb-1">Threshold</label>
+            <input
+              type="number"
+              step="0.1"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              className="w-full p-2.5 border border-border rounded-xl bg-bg text-text-primary outline-none focus:ring-2 focus:ring-primary/30"
+            />
           </div>
-          <button onClick={handleDetect} disabled={loading} className="px-6 py-2 bg-gradient-to-r from-primary to-primary-light text-white rounded-lg hover:opacity-90 font-medium transition">
-            {loading ? 'Detecting...' : 'Detect Outliers'}
-          </button>
+          <motion.button
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={handleDetect}
+            disabled={loading || !column}
+            className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold shadow hover:shadow-lg disabled:opacity-50 transition"
+          >
+            {loading ? 'Detecting…' : 'Detect Outliers'}
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
-      {loading && <LoadingSpinner size="lg" text="Analyzing..." />}
+      {loading && <LoadingSpinner size="lg" text="Analyzing…" />}
 
       {results && !loading && (
-        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex justify-between items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          {/* Summary bar */}
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Found {results.outlier_count} Outliers</h3>
-              <p className="text-slate-500 dark:text-slate-400">In column {results.column} using {results.method.toUpperCase()}</p>
+              <h3 className="text-lg font-bold text-text-primary">
+                Found <span className="text-warning">{results.outlier_count}</span> Outliers
+              </h3>
+              <p className="text-text-secondary text-sm">In column <strong>{results.column}</strong> using {results.method?.toUpperCase()}</p>
             </div>
             {results.outlier_count > 0 && (
-              <button onClick={handleRemove} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={handleRemove}
+                className="px-5 py-2 bg-gradient-to-r from-danger to-rose-600 text-white rounded-xl font-semibold shadow hover:shadow-lg transition"
+              >
                 Remove Outliers
-              </button>
+              </motion.button>
             )}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ChartContainer data={results.box_plot_data} title="Box Plot" />
             <ChartContainer data={results.distribution_data} title="Distribution Plot" />
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
